@@ -29,63 +29,65 @@ api.interceptors.response.use(
   }
 );
 
+type Id = number | string;
+
 // ─── Auth ──────────────────────────────────────────────────────────────────
 export const authApi = {
-  login: (data) => api.post('/auth/login', data),
-  register: (data) => api.post('/auth/register', data),
+  login: (data: any) => api.post('/auth/login', data),
+  register: (data: any) => api.post('/auth/register', data),
   me: () => api.get('/auth/me'),
-  changePassword: (data) => api.patch('/auth/change-password', data),
+  changePassword: (data: any) => api.patch('/auth/change-password', data),
 };
 
 // ─── Formations ────────────────────────────────────────────────────────────
 export const formationsApi = {
-  list: (params) => api.get('/formations', { params }),
-  get: (id) => api.get(`/formations/${id}`),
-  create: (data) => api.post('/formations', data),
-  update: (id, data) => api.put(`/formations/${id}`, data),
-  delete: (id) => api.delete(`/formations/${id}`),
+  list: (params?: any) => api.get('/formations', { params }),
+  get: (id: Id) => api.get(`/formations/${id}`),
+  create: (data: any) => api.post('/formations', data),
+  update: (id: Id, data: any) => api.put(`/formations/${id}`, data),
+  delete: (id: Id) => api.delete(`/formations/${id}`),
 };
 
 // ─── Domaines ──────────────────────────────────────────────────────────────
 export const domainesApi = {
   list: () => api.get('/domaines'),
-  create: (data) => api.post('/domaines', data),
-  update: (id, data) => api.put(`/domaines/${id}`, data),
-  delete: (id) => api.delete(`/domaines/${id}`),
+  create: (data: any) => api.post('/domaines', data),
+  update: (id: Id, data: any) => api.put(`/domaines/${id}`, data),
+  delete: (id: Id) => api.delete(`/domaines/${id}`),
 };
 
 // ─── Inscriptions ──────────────────────────────────────────────────────────
 export const inscriptionsApi = {
-  list: (params) => api.get('/inscriptions', { params }),
-  create: (data) => api.post('/inscriptions', data),
-  updateStatus: (id, data) => api.patch(`/inscriptions/${id}/status`, data),
+  list: (params?: any) => api.get('/inscriptions', { params }),
+  create: (data: any) => api.post('/inscriptions', data),
+  updateStatus: (id: Id, data: any) => api.patch(`/inscriptions/${id}/status`, data),
 };
 
 // ─── Paiements ─────────────────────────────────────────────────────────────
 export const paiementsApi = {
-  list: (params) => api.get('/paiements', { params }),
-  create: (data) => api.post('/paiements', data),
+  list: (params?: any) => api.get('/paiements', { params }),
+  create: (data: any) => api.post('/paiements', data),
 };
 
 // ─── Présences ─────────────────────────────────────────────────────────────
 export const presencesApi = {
-  bulkCreate: (data) => api.post('/presences/bulk', data),
-  getByFormation: (formationId) => api.get(`/presences/formation/${formationId}`),
+  bulkCreate: (data: any) => api.post('/presences/bulk', data),
+  getByFormation: (formationId: Id) => api.get(`/presences/formation/${formationId}`),
 };
 
 // ─── Attestations ──────────────────────────────────────────────────────────
 export const attestationsApi = {
-  create: (data) => api.post('/attestations', data),
+  create: (data: any) => api.post('/attestations', data),
   myAttestations: () => api.get('/attestations/me'),
-  verify: (code) => api.get(`/attestations/verify/${code}`),
+  verify: (code: string) => api.get(`/attestations/verify/${code}`),
 };
 
 // ─── Users ─────────────────────────────────────────────────────────────────
 export const usersApi = {
-  list: (params) => api.get('/users', { params }),
-  createFormateur: (data) => api.post('/users/formateurs', data),
-  toggle: (id) => api.patch(`/users/${id}/toggle`),
-  updateMe: (data) => api.patch('/users/me', data),
+  list: (params?: any) => api.get('/users', { params }),
+  createFormateur: (data: any) => api.post('/users/formateurs', data),
+  toggle: (id: Id) => api.patch(`/users/${id}/toggle`),
+  updateMe: (data: any) => api.patch('/users/me', data),
 };
 
 // ─── Stats ─────────────────────────────────────────────────────────────────
