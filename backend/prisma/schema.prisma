@@ -1,0 +1,194 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  FORMATEUR
+  PARTICIPANT
+}
+
+enum InscriptionStatus {
+  EN_ATTENTE
+  VALIDEE
+  REFUSEE
+  ANNULEE
+}
+
+enum PaiementStatus {
+  EN_ATTENTE
+  PAYE
+  PARTIEL
+  REMBOURSE
+}
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+  RETARD
+  EXCUSE
+}
+
+enum NiveauFormation {
+  DEBUTANT
+  INTERMEDIAIRE
+  AVANCE
+  EXPERT
+}
+
+model User {
+  id          Int      @id @default(autoincrement())
+  firstName   String
+  lastName    String
+  email       String   @unique
+  password    String
+  phone       String?
+  address     String?
+  role        Role     @default(PARTICIPANT)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations selon le rôle
+  formateur   Formateur?
+  participant Participant?
+
+  @@map("users")
+}
+
+model Domaine {
+  id          Int         @id @default(autoincrement())
+  nom         String      @unique
+  description String?
+  createdAt   DateTime    @default(now())
+
+  formations  Formation[]
+
+  @@map("domaines")
+}
+
+model Formation {
+  id                Int             @id @default(autoincrement())
+  titre             String
+  description       String?
+  domaineId         Int
+  niveau            NiveauFormation @default(DEBUTANT)
+  duree             String          // ex: "40 heures", "2 semaines"
+  dateDebut         DateTime
+  dateFin           DateTime
+  prix              Decimal         @db.Decimal(10, 2)
+  placesMax         Int
+  isActive          Boolean         @default(true)
+  formateurId       Int?
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  domaine           Domaine         @relation(fields: [domaineId], references: [id])
+  formateur         Formateur?      @relation(fields: [formateurId], references: [id])
+  inscriptions      Inscription[]
+  presences         Presence[]
+  attestations      Attestation[]
+
+  @@map("formations")
+}
+
+model Formateur {
+  id          Int         @id @default(autoincrement())
+  userId      Int         @unique
+  specialite  String?
+  bio         String?
+  createdAt   DateTime    @default(now())
+
+  user        User        @relation(fields: [userId], references: [id])
+  formations  Formation[]
+  presences   Presence[]
+
+  @@map("formateurs")
+}
+
+model Participant {
+  id              Int           @id @default(autoincrement())
+  userId          Int           @unique
+  numInscription  String        @unique @default(cuid())
+  createdAt       DateTime      @default(now())
+
+  user            User          @relation(fields: [userId], references: [id])
+  inscriptions    Inscription[]
+  paiements       Paiement[]
+  presences       Presence[]
+  attestations    Attestation[]
+
+  @@map("participants")
+}
+
+model Inscription {
+  id            Int               @id @default(autoincrement())
+  participantId Int
+  formationId   Int
+  status        InscriptionStatus @default(EN_ATTENTE)
+  motifRefus    String?
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  participant   Participant       @relation(fields: [participantId], references: [id])
+  formation     Formation         @relation(fields: [formationId], references: [id])
+  paiements     Paiement[]
+
+  @@unique([participantId, formationId])
+  @@map("inscriptions")
+}
+
+model Paiement {
+  id            Int            @id @default(autoincrement())
+  inscriptionId Int
+  participantId Int
+  montant       Decimal        @db.Decimal(10, 2)
+  status        PaiementStatus @default(EN_ATTENTE)
+  modePaiement  String?        // Mobile Money, Virement, Espèces
+  reference     String?
+  notes         String?
+  datePaiement  DateTime?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  inscription   Inscription    @relation(fields: [inscriptionId], references: [id])
+  participant   Participant    @relation(fields: [participantId], references: [id])
+
+  @@map("paiements")
+}
+
+model Presence {
+  id            Int              @id @default(autoincrement())
+  participantId Int
+  formationId   Int
+  formateurId   Int
+  status        AttendanceStatus @default(PRESENT)
+  date          DateTime         @default(now())
+  notes         String?
+
+  participant   Participant      @relation(fields: [participantId], references: [id])
+  formation     Formation        @relation(fields: [formationId], references: [id])
+  formateur     Formateur        @relation(fields: [formateurId], references: [id])
+
+  @@unique([participantId, formationId, date])
+  @@map("presences")
+}
+
+model Attestation {
+  id            Int         @id @default(autoincrement())
+  participantId Int
+  formationId   Int
+  code          String      @unique @default(cuid())
+  dateEmission  DateTime    @default(now())
+  isValid       Boolean     @default(true)
+
+  participant   Participant @relation(fields: [participantId], references: [id])
+  formation     Formation   @relation(fields: [formationId], references: [id])
+
+  @@map("attestations")
+}
