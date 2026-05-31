@@ -18,15 +18,49 @@ const statsRoutes = require('./routes/stats');
 const app = express();
 const PORT = process.env.PORT || 3001;
 
+// ─── Liste des origines autorisées ────────────────────────────────────────
+// FRONTEND_URL peut être une seule URL ou plusieurs séparées par des virgules
+// Ex: FRONTEND_URL=https://gestion-alpha-one.vercel.app,https://mon-autre-domaine.com
+const rawOrigins = process.env.FRONTEND_URL || 'http://localhost:3000';
+const allowedOrigins = rawOrigins
+  .split(',')
+  .map(o => o.trim().replace(/\/$/, '')); // supprimer les slashes finaux
+
+console.log('✅ Origines CORS autorisées:', allowedOrigins);
+
+const corsOptions = {
+  origin: function (origin, callback) {
+    // Autoriser les requêtes sans origine (Postman, curl, mobile apps)
+    if (!origin) return callback(null, true);
+
+    // Supprimer le slash final éventuel de l'origine entrante
+    const cleanOrigin = origin.replace(/\/$/, '');
+
+    if (allowedOrigins.includes(cleanOrigin)) {
+      callback(null, true);
+    } else {
+      console.warn(`⛔ Origine CORS bloquée: ${origin}`);
+      console.warn(`   Origines autorisées: ${allowedOrigins.join(', ')}`);
+      callback(new Error(`Origine non autorisée par CORS: ${origin}`));
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  optionsSuccessStatus: 200, // Certains navigateurs (IE11) ont des problèmes avec 204
+};
+
 // ─── Middlewares de sécurité ───────────────────────────────────────────────
 app.set('trust proxy', 1); // Requis sur Railway derrière un proxy
 
-app.use(helmet());
-app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
+// ⚠️ CORS DOIT être avant helmet et tout le reste
+app.use(cors(corsOptions));
+
+// Gérer explicitement les requêtes preflight OPTIONS sur toutes les routes
+app.options('*', cors(corsOptions));
+
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: 'cross-origin' },
 }));
 
 app.use(morgan('combined'));
