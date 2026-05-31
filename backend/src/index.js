@@ -13,35 +13,31 @@ const paiementRoutes = require('./routes/paiements');
 const presenceRoutes = require('./routes/presences');
 const attestationRoutes = require('./routes/attestations');
 const statsRoutes = require('./routes/stats');
+const setupRoutes = require('./routes/setup');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// ─── CORS Manuel — doit être EN PREMIER, avant tout autre middleware ───────
-// Injecte les headers CORS sur CHAQUE réponse, y compris les erreurs
+// ─── CORS Manuel — EN PREMIER, avant tout autre middleware ────────────────
 app.use((req, res, next) => {
   const origin = req.headers.origin;
 
-  // Origines autorisées (variable d'env séparées par virgule)
   const rawOrigins = process.env.FRONTEND_URL || 'http://localhost:3000';
   const allowedOrigins = rawOrigins
     .split(',')
     .map(o => o.trim().replace(/\/$/, ''));
 
-  // Si l'origine est dans la liste, on l'autorise explicitement
   if (origin && allowedOrigins.includes(origin.replace(/\/$/, ''))) {
     res.setHeader('Access-Control-Allow-Origin', origin);
   } else if (!origin) {
-    // Requêtes sans origine (Postman, curl) — autorisées
     res.setHeader('Access-Control-Allow-Origin', '*');
   }
 
   res.setHeader('Access-Control-Allow-Credentials', 'true');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
-  res.setHeader('Access-Control-Max-Age', '86400'); // Cache preflight 24h
+  res.setHeader('Access-Control-Max-Age', '86400');
 
-  // Répondre immédiatement aux requêtes preflight OPTIONS
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
   }
@@ -49,7 +45,7 @@ app.use((req, res, next) => {
   next();
 });
 
-// ─── Autres middlewares ────────────────────────────────────────────────────
+// ─── Autres middlewares ───────────────────────────────────────────────────
 app.set('trust proxy', 1);
 
 app.use(helmet({
@@ -61,14 +57,12 @@ app.use(morgan('combined'));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
-// Rate limiting global (APRÈS le middleware CORS)
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 200,
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: 'Trop de requêtes, réessayez dans 15 minutes.' },
-  // Skip le rate limit sur les OPTIONS pour ne pas bloquer les preflights
   skip: (req) => req.method === 'OPTIONS',
 });
 app.use(limiter);
@@ -90,6 +84,7 @@ app.get('/', (req, res) => {
 });
 
 // ─── Routes ───────────────────────────────────────────────────────────────
+app.use('/api/setup', setupRoutes);
 app.use('/api/auth', authLimiter, authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/domaines', domaineRoutes);
@@ -100,7 +95,7 @@ app.use('/api/presences', presenceRoutes);
 app.use('/api/attestations', attestationRoutes);
 app.use('/api/stats', statsRoutes);
 
-// ─── Gestion des erreurs ───────────────────────────────────────────────────
+// ─── Gestion des erreurs ──────────────────────────────────────────────────
 app.use((req, res) => {
   res.status(404).json({ error: 'Route non trouvée' });
 });
