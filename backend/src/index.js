@@ -1,6 +1,5 @@
 require('dotenv').config();
 const express = require('express');
-const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
@@ -18,73 +17,70 @@ const statsRoutes = require('./routes/stats');
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// ─── Liste des origines autorisées ────────────────────────────────────────
-// FRONTEND_URL peut être une seule URL ou plusieurs séparées par des virgules
-// Ex: FRONTEND_URL=https://gestion-alpha-one.vercel.app,https://mon-autre-domaine.com
-const rawOrigins = process.env.FRONTEND_URL || 'http://localhost:3000';
-const allowedOrigins = rawOrigins
-  .split(',')
-  .map(o => o.trim().replace(/\/$/, '')); // supprimer les slashes finaux
+// ─── CORS Manuel — doit être EN PREMIER, avant tout autre middleware ───────
+// Injecte les headers CORS sur CHAQUE réponse, y compris les erreurs
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
 
-console.log('✅ Origines CORS autorisées:', allowedOrigins);
+  // Origines autorisées (variable d'env séparées par virgule)
+  const rawOrigins = process.env.FRONTEND_URL || 'http://localhost:3000';
+  const allowedOrigins = rawOrigins
+    .split(',')
+    .map(o => o.trim().replace(/\/$/, ''));
 
-const corsOptions = {
-  origin: function (origin, callback) {
-    // Autoriser les requêtes sans origine (Postman, curl, mobile apps)
-    if (!origin) return callback(null, true);
+  // Si l'origine est dans la liste, on l'autorise explicitement
+  if (origin && allowedOrigins.includes(origin.replace(/\/$/, ''))) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  } else if (!origin) {
+    // Requêtes sans origine (Postman, curl) — autorisées
+    res.setHeader('Access-Control-Allow-Origin', '*');
+  }
 
-    // Supprimer le slash final éventuel de l'origine entrante
-    const cleanOrigin = origin.replace(/\/$/, '');
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
+  res.setHeader('Access-Control-Max-Age', '86400'); // Cache preflight 24h
 
-    if (allowedOrigins.includes(cleanOrigin)) {
-      callback(null, true);
-    } else {
-      console.warn(`⛔ Origine CORS bloquée: ${origin}`);
-      console.warn(`   Origines autorisées: ${allowedOrigins.join(', ')}`);
-      callback(new Error(`Origine non autorisée par CORS: ${origin}`));
-    }
-  },
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
-  optionsSuccessStatus: 200, // Certains navigateurs (IE11) ont des problèmes avec 204
-};
+  // Répondre immédiatement aux requêtes preflight OPTIONS
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
 
-// ─── Middlewares de sécurité ───────────────────────────────────────────────
-app.set('trust proxy', 1); // Requis sur Railway derrière un proxy
+  next();
+});
 
-// ⚠️ CORS DOIT être avant helmet et tout le reste
-app.use(cors(corsOptions));
-
-// Gérer explicitement les requêtes preflight OPTIONS sur toutes les routes
-app.options('*', cors(corsOptions));
+// ─── Autres middlewares ────────────────────────────────────────────────────
+app.set('trust proxy', 1);
 
 app.use(helmet({
-  crossOriginResourcePolicy: { policy: 'cross-origin' },
+  crossOriginResourcePolicy: false,
+  crossOriginOpenerPolicy: false,
 }));
 
 app.use(morgan('combined'));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
-// Rate limiting global
+// Rate limiting global (APRÈS le middleware CORS)
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
+  windowMs: 15 * 60 * 1000,
   max: 200,
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: 'Trop de requêtes, réessayez dans 15 minutes.' },
+  // Skip le rate limit sur les OPTIONS pour ne pas bloquer les preflights
+  skip: (req) => req.method === 'OPTIONS',
 });
 app.use(limiter);
 
-// Rate limiting strict pour l'auth
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 10,
+  max: 20,
   message: { error: 'Trop de tentatives de connexion, réessayez dans 15 minutes.' },
+  skip: (req) => req.method === 'OPTIONS',
 });
 
-// ─── Healthcheck Railway ───────────────────────────────────────────────────
+// ─── Healthcheck ──────────────────────────────────────────────────────────
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
@@ -111,8 +107,7 @@ app.use((req, res) => {
 
 app.use((err, req, res, next) => {
   console.error('Erreur serveur:', err);
-  
-  // Erreurs Prisma courantes
+
   if (err.code === 'P2002') {
     return res.status(409).json({ error: 'Cette valeur existe déjà (doublon).' });
   }
@@ -125,10 +120,12 @@ app.use((err, req, res, next) => {
   });
 });
 
-// ─── Démarrage ─────────────────────────────────────────────────────────────
+// ─── Démarrage ────────────────────────────────────────────────────────────
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Serveur démarré sur le port ${PORT}`);
   console.log(`📦 Environment: ${process.env.NODE_ENV || 'development'}`);
+  const rawOrigins = process.env.FRONTEND_URL || 'http://localhost:3000';
+  console.log(`✅ CORS autorisé pour: ${rawOrigins}`);
 });
 
 module.exports = app;
