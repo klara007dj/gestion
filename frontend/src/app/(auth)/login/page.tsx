@@ -31,7 +31,7 @@ export default function LoginPage() {
       toast.success(`Bienvenue, ${res.user.firstName} !`);
 
       // Rediriger selon le rôle
-      const redirects = { ADMIN: '/admin', FORMATEUR: '/formateur', PARTICIPANT: '/participant' };
+      const redirects = { ADMIN: '/admin', FORMATEUR: '/formateur', PARTICIPANT: '/participant/formations' };
       router.push(redirects[res.user.role as keyof typeof redirects] || '/');
     } catch (err: any) {
       toast.error(err.response?.data?.error || 'Erreur de connexion');
