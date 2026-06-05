@@ -37,10 +37,11 @@ router.get('/dashboard', authenticate, authorize('ADMIN'), async (req, res, next
         take: 5,
       }),
       // Inscriptions des 6 derniers mois
+      // COUNT(*)::int → renvoie un entier JS (sinon BigInt non sérialisable en JSON → 500)
       prisma.$queryRaw`
-        SELECT 
+        SELECT
           DATE_TRUNC('month', "createdAt") as mois,
-          COUNT(*) as total
+          COUNT(*)::int as total
         FROM inscriptions
         WHERE "createdAt" >= NOW() - INTERVAL '6 months'
         GROUP BY DATE_TRUNC('month', "createdAt")
