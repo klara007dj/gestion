@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { statsApi } from '@/lib/api';
-import { GraduationCap, Users, ClipboardList, CreditCard, Award, Clock, TrendingUp, BookOpen } from 'lucide-react';
+import { GraduationCap, Users, ClipboardList, CreditCard, Award, Clock, TrendingUp, BookOpen, Wallet } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -11,7 +11,7 @@ interface DashboardStats {
   participants: { total: number };
   formateurs: { total: number };
   inscriptions: { total: number; enAttente: number; validees: number; parMois: any[] };
-  finances: { totalPercu: number; paiementsEnAttente: number };
+  finances: { totalPercu: number; soldeAdministration: number; paiementsEnAttente: number; montantEnAttente: number };
   attestations: { total: number };
 }
 
@@ -59,6 +59,26 @@ export default function AdminDashboard() {
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Tableau de bord</h1>
         <p className="text-gray-500 text-sm mt-1">Vue d'ensemble du centre de formation</p>
+      </div>
+
+      {/* Solde de l'administration */}
+      <div className="card flex items-center justify-between gap-4 bg-gradient-to-r from-emerald-600 to-green-500 text-white border-0">
+        <div className="flex items-center gap-4">
+          <div className="p-3 bg-white/20 rounded-xl"><Wallet className="w-7 h-7 text-white" /></div>
+          <div>
+            <p className="text-sm text-white/80">Solde des fonds de l'administration</p>
+            <p className="text-3xl font-bold">
+              {Number(stats.finances.soldeAdministration ?? stats.finances.totalPercu).toLocaleString('fr-FR')} FCFA
+            </p>
+          </div>
+        </div>
+        <div className="text-right">
+          <p className="text-sm text-white/80">À valider</p>
+          <p className="text-lg font-semibold">
+            {Number(stats.finances.montantEnAttente || 0).toLocaleString('fr-FR')} FCFA
+          </p>
+          <p className="text-xs text-white/70">{stats.finances.paiementsEnAttente} paiement(s) en attente</p>
+        </div>
       </div>
 
       {/* Stats principales */}

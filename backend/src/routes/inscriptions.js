@@ -75,7 +75,7 @@ router.get('/', authenticate, async (req, res, next) => {
         include: {
           participant: { include: { user: { select: { firstName: true, lastName: true, email: true, phone: true } } } },
           formation: { select: { id: true, titre: true, dateDebut: true, dateFin: true, prix: true } },
-          paiements: { select: { montant: true, status: true } },
+          paiements: { select: { id: true, montant: true, status: true, modePaiement: true, datePaiement: true } },
         },
         orderBy: { createdAt: 'desc' },
         skip,

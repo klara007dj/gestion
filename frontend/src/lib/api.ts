@@ -67,6 +67,8 @@ export const inscriptionsApi = {
 export const paiementsApi = {
   list: (params?: any) => api.get('/paiements', { params }),
   create: (data: any) => api.post('/paiements', data),
+  valider: (id: Id) => api.patch(`/paiements/${id}/valider`),
+  refuser: (id: Id) => api.delete(`/paiements/${id}`),
 };
 
 // ─── Présences ─────────────────────────────────────────────────────────────

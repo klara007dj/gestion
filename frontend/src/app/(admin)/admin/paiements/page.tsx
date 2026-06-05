@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import toast from 'react-hot-toast';
-import { Plus, CreditCard, X, Loader2 } from 'lucide-react';
+import { Plus, CreditCard, X, Loader2, Check, Trash2, Wallet } from 'lucide-react';
 import { paiementsApi, inscriptionsApi } from '@/lib/api';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -15,6 +15,7 @@ export default function PaiementsPage() {
   const [showModal, setShowModal] = useState(false);
   const [meta, setMeta] = useState({ total: 0 });
   const [totalPercu, setTotalPercu] = useState(0);
+  const [processingId, setProcessingId] = useState<number | null>(null);
 
   const { register, handleSubmit, reset, formState: { isSubmitting } } = useForm();
 
@@ -50,6 +51,33 @@ export default function PaiementsPage() {
     }
   };
 
+  const handleValider = async (id: number) => {
+    setProcessingId(id);
+    try {
+      await paiementsApi.valider(id);
+      toast.success('Paiement validé ✓ Solde mis à jour.');
+      fetchPaiements();
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || 'Erreur');
+    } finally {
+      setProcessingId(null);
+    }
+  };
+
+  const handleRefuser = async (id: number) => {
+    if (!confirm('Refuser et supprimer ce paiement en attente ?')) return;
+    setProcessingId(id);
+    try {
+      await paiementsApi.refuser(id);
+      toast.success('Paiement refusé.');
+      fetchPaiements();
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || 'Erreur');
+    } finally {
+      setProcessingId(null);
+    }
+  };
+
   const statusMap: Record<string, string> = {
     PAYE: 'badge-success', EN_ATTENTE: 'badge-warning', PARTIEL: 'badge-info', REMBOURSE: 'badge-gray'
   };
@@ -68,19 +96,24 @@ export default function PaiementsPage() {
 
       {/* Résumé financier */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div className="card flex items-center gap-4">
-          <div className="p-3 bg-green-100 rounded-xl"><CreditCard className="w-6 h-6 text-green-600" /></div>
+        <div className="card flex items-center gap-4 border-l-4 border-l-green-500">
+          <div className="p-3 bg-green-100 rounded-xl"><Wallet className="w-6 h-6 text-green-600" /></div>
           <div>
-            <p className="text-sm text-gray-500">Total perçu</p>
+            <p className="text-sm text-gray-500">Solde de l'administration</p>
             <p className="text-xl font-bold text-gray-900">{totalPercu.toLocaleString('fr-FR')} FCFA</p>
+            <p className="text-xs text-gray-400">Total des paiements validés</p>
           </div>
         </div>
         <div className="card flex items-center gap-4">
           <div className="p-3 bg-orange-100 rounded-xl"><CreditCard className="w-6 h-6 text-orange-500" /></div>
           <div>
-            <p className="text-sm text-gray-500">En attente</p>
+            <p className="text-sm text-gray-500">En attente de validation</p>
             <p className="text-xl font-bold text-gray-900">
               {paiements.filter(p => p.status === 'EN_ATTENTE').length} paiement(s)
+            </p>
+            <p className="text-xs text-gray-400">
+              {paiements.filter(p => p.status === 'EN_ATTENTE')
+                .reduce((s, p) => s + Number(p.montant), 0).toLocaleString('fr-FR')} FCFA à valider
             </p>
           </div>
         </div>
@@ -91,16 +124,16 @@ export default function PaiementsPage() {
         <table className="w-full text-sm">
           <thead className="bg-gray-50 border-b">
             <tr>
-              {['Participant', 'Formation', 'Montant', 'Mode', 'Référence', 'Date', 'Statut'].map(h => (
+              {['Participant', 'Formation', 'Montant', 'Mode', 'Référence', 'Date', 'Statut', 'Actions'].map(h => (
                 <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">{h}</th>
               ))}
             </tr>
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={7} className="text-center py-12 text-gray-400">Chargement...</td></tr>
+              <tr><td colSpan={8} className="text-center py-12 text-gray-400">Chargement...</td></tr>
             ) : paiements.length === 0 ? (
-              <tr><td colSpan={7} className="text-center py-12 text-gray-400">Aucun paiement</td></tr>
+              <tr><td colSpan={8} className="text-center py-12 text-gray-400">Aucun paiement</td></tr>
             ) : paiements.map(p => (
               <tr key={p.id} className="border-b hover:bg-gray-50">
                 <td className="px-4 py-3">
@@ -116,6 +149,30 @@ export default function PaiementsPage() {
                 </td>
                 <td className="px-4 py-3">
                   <span className={statusMap[p.status] || 'badge-gray'}>{p.status}</span>
+                </td>
+                <td className="px-4 py-3">
+                  {p.status === 'EN_ATTENTE' ? (
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => handleValider(p.id)}
+                        disabled={processingId === p.id}
+                        className="p-1.5 bg-green-100 text-green-700 hover:bg-green-200 rounded-lg transition-colors disabled:opacity-50"
+                        title="Valider le paiement"
+                      >
+                        {processingId === p.id ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
+                      </button>
+                      <button
+                        onClick={() => handleRefuser(p.id)}
+                        disabled={processingId === p.id}
+                        className="p-1.5 bg-red-100 text-red-600 hover:bg-red-200 rounded-lg transition-colors disabled:opacity-50"
+                        title="Refuser le paiement"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  ) : (
+                    <span className="text-gray-300">—</span>
+                  )}
                 </td>
               </tr>
             ))}

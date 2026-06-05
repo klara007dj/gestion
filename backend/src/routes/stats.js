@@ -16,6 +16,7 @@ router.get('/dashboard', authenticate, authorize('ADMIN'), async (req, res, next
       inscriptionsValidees,
       totalPaiements,
       paiementsEnAttente,
+      montantEnAttente,
       attestationsDelivrees,
       formationsActives,
       formationsParDomaine,
@@ -29,6 +30,7 @@ router.get('/dashboard', authenticate, authorize('ADMIN'), async (req, res, next
       prisma.inscription.count({ where: { status: 'VALIDEE' } }),
       prisma.paiement.aggregate({ _sum: { montant: true }, where: { status: 'PAYE' } }),
       prisma.paiement.count({ where: { status: 'EN_ATTENTE' } }),
+      prisma.paiement.aggregate({ _sum: { montant: true }, where: { status: 'EN_ATTENTE' } }),
       prisma.attestation.count({ where: { isValid: true } }),
       prisma.formation.count({ where: { isActive: true } }),
       prisma.domaine.findMany({
@@ -76,7 +78,10 @@ router.get('/dashboard', authenticate, authorize('ADMIN'), async (req, res, next
       },
       finances: {
         totalPercu: totalPaiements._sum.montant || 0,
+        // Solde des fonds de l'administration = total des paiements validés (PAYE)
+        soldeAdministration: totalPaiements._sum.montant || 0,
         paiementsEnAttente,
+        montantEnAttente: montantEnAttente._sum.montant || 0,
       },
       attestations: { total: attestationsDelivrees },
     });
