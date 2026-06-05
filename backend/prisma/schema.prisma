@@ -93,6 +93,7 @@ model Formation {
   inscriptions      Inscription[]
   presences         Presence[]
   attestations      Attestation[]
+  seances           Seance[]
 
   @@map("formations")
 }
@@ -107,6 +108,7 @@ model Formateur {
   user        User        @relation(fields: [userId], references: [id])
   formations  Formation[]
   presences   Presence[]
+  seances     Seance[]
 
   @@map("formateurs")
 }
@@ -170,10 +172,12 @@ model Presence {
   status        AttendanceStatus @default(PRESENT)
   date          DateTime         @default(now())
   notes         String?
+  seanceId      Int?
 
   participant   Participant      @relation(fields: [participantId], references: [id])
   formation     Formation        @relation(fields: [formationId], references: [id])
   formateur     Formateur        @relation(fields: [formateurId], references: [id])
+  seance        Seance?          @relation(fields: [seanceId], references: [id], onDelete: Cascade)
 
   @@unique([participantId, formationId, date])
   @@map("presences")
@@ -191,4 +195,39 @@ model Attestation {
   formation     Formation   @relation(fields: [formationId], references: [id])
 
   @@map("attestations")
+}
+
+model Salle {
+  id        Int      @id @default(autoincrement())
+  nom       String   @unique
+  capacite  Int
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  seances Seance[]
+
+  @@map("salles")
+}
+
+model Seance {
+  id         Int      @id @default(autoincrement())
+  titre      String?
+  date       DateTime @db.Date
+  heureDebut DateTime @db.Time
+  heureFin   DateTime @db.Time
+
+  formationId Int
+  formateurId Int
+  salleId     Int
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  formation Formation  @relation(fields: [formationId], references: [id], onDelete: Cascade)
+  formateur Formateur  @relation(fields: [formateurId], references: [id])
+  salle     Salle      @relation(fields: [salleId], references: [id])
+  presences Presence[]
+
+  @@map("seances")
 }

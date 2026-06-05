@@ -5,13 +5,16 @@ import Link from 'next/link';
 import { useAuth } from '@/lib/auth-context';
 import {
   LayoutDashboard, GraduationCap, Users, BookOpen, CreditCard,
-  ClipboardList, Award, ChevronRight, LogOut, Settings, Menu, X
+  ClipboardList, Award, ChevronRight, LogOut, Settings, Menu, X,
+  Calendar, DoorOpen
 } from 'lucide-react';
 import { useState } from 'react';
 import clsx from 'clsx';
 
 const navItems = [
   { href: '/admin', label: 'Tableau de bord', icon: LayoutDashboard },
+  { href: '/admin/planning', label: 'Planning', icon: Calendar },
+  { href: '/admin/salles', label: 'Salles', icon: DoorOpen },
   { href: '/admin/formations', label: 'Formations', icon: GraduationCap },
   { href: '/admin/domaines', label: 'Domaines', icon: BookOpen },
   { href: '/admin/inscriptions', label: 'Inscriptions', icon: ClipboardList },

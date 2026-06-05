@@ -3,13 +3,14 @@ import { useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/lib/auth-context';
-import { GraduationCap, BookOpen, ClipboardList, Award, User, LogOut, Menu, X } from 'lucide-react';
+import { GraduationCap, BookOpen, ClipboardList, Award, User, LogOut, Menu, X, Calendar } from 'lucide-react';
 import { useState } from 'react';
 import clsx from 'clsx';
 
 const navItems = [
   { href: '/participant/formations', label: 'Catalogue', icon: BookOpen },
   { href: '/participant/mes-inscriptions', label: 'Mes inscriptions', icon: ClipboardList },
+  { href: '/participant/planning', label: 'Planning', icon: Calendar },
   { href: '/participant/attestations', label: 'Attestations', icon: Award },
   { href: '/participant/profil', label: 'Mon profil', icon: User },
 ];

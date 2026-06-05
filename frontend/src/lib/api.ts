@@ -96,4 +96,19 @@ export const statsApi = {
   formateur: () => api.get('/stats/formateur'),
 };
 
+// ─── Salles ────────────────────────────────────────────────────────────────
+export const sallesApi = {
+  list: () => api.get('/salles'),
+  create: (data: any) => api.post('/salles', data),
+  update: (id: Id, data: any) => api.patch(`/salles/${id}`, data),
+  remove: (id: Id) => api.delete(`/salles/${id}`),
+};
+
+// ─── Séances (planning) ──────────────────────────────────────────────────────
+export const seancesApi = {
+  list: (params?: any) => api.get('/seances', { params }),
+  create: (data: any) => api.post('/seances', data),
+  remove: (id: Id) => api.delete(`/seances/${id}`),
+};
+
 export default api;

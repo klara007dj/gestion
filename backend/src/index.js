@@ -14,6 +14,8 @@ const paiementRoutes = require('./routes/paiements');
 const presenceRoutes = require('./routes/presences');
 const attestationRoutes = require('./routes/attestations');
 const statsRoutes = require('./routes/stats');
+const salleRoutes = require('./routes/salles');
+const seanceRoutes = require('./routes/seances');
 
 const prisma = require('./lib/prisma');
 
@@ -157,6 +159,8 @@ app.use('/api/paiements', paiementRoutes);
 app.use('/api/presences', presenceRoutes);
 app.use('/api/attestations', attestationRoutes);
 app.use('/api/stats', statsRoutes);
+app.use('/api/salles', salleRoutes);
+app.use('/api/seances', seanceRoutes);
 
 // ─── Gestion des erreurs ──────────────────────────────────────────────────
 app.use((req, res) => {
